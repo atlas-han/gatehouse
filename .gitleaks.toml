@@ -1,0 +1,8 @@
+# gitleaks 기본 규칙에 hook 테스트용 가짜 비밀값 경로만 예외로 더한다.
+# 이 파일은 CODEOWNERS 대상이며 에이전트가 수정할 수 없다(guard-paths.sh).
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "scan-secrets.sh 테스트가 탐지를 확인하려고 쓰는 가짜 비밀값"
+paths = ['''^\.claude/hooks/tests/fixtures/''']
