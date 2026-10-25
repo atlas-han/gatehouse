@@ -1,0 +1,29 @@
+name: harness
+
+on:
+  pull_request:
+    paths: [".claude/**", ".githooks/**", ".gitleaks.toml", ".github/workflows/harness.yml"]
+  push:
+    branches: [develop, main]
+    paths: [".claude/**", ".githooks/**", ".gitleaks.toml", ".github/workflows/harness.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  hook-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+      - name: shellcheck
+        run: shellcheck -S warning .claude/hooks/*.sh .claude/hooks/tests/run.sh
+      - name: settings.json is valid JSON
+        run: jq empty .claude/settings.json
+      - name: hook tests
+        run: bash .claude/hooks/tests/run.sh

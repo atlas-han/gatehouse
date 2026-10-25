@@ -1,0 +1,7 @@
+# 하네스·보안 경계 파일은 저장소 소유자 승인이 있어야 병합된다(브랜치 보호의 "Require review from Code Owners"와 함께 동작).
+/.claude/          @atlas-han
+/.githooks/        @atlas-han
+/.github/          @atlas-han
+/.gitleaks.toml    @atlas-han
+/.gitleaksignore   @atlas-han
+/CLAUDE.md         @atlas-han
