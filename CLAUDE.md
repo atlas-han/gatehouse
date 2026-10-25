@@ -54,7 +54,7 @@ Testing stack: JUnit5, Kotest assertions, MockK, Testcontainers (MySQL/Redis/Kaf
 The project harness lives in `.claude/`. `.claude/HARNESS.md` records why each part exists and when to remove it. Hooks, settings, gitleaks config, and CODEOWNERS are human-edited only, and the guard hooks block agent edits. To change one, propose the diff instead.
 
 Issue workflow (state lives in `docs/work/<issue>/`, see its README):
-`claude -w issue-<n>` → `/intent <n>` → `/spec` → human adds `spec-approved` label → `/work-plan` → `/implement` ⇄ `/work-verify` → `/ship` (human-invoked) → human merges.
+`/issue` (creates the issue; `--plan W<n>` splits a plan week) → `claude -w issue-<n>` → `/intent <n>` → `/spec` → human adds `spec-approved` label → `/work-plan` → `/implement` ⇄ `/work-verify` → `/ship` (human-invoked) → human merges.
 
 - Before stopping, if code changed, `./gradlew check` must pass. The Stop hook enforces this.
 - Path-scoped rules in `.claude/rules/` load automatically when you touch matching files.

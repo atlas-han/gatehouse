@@ -23,6 +23,9 @@
       "Bash(gh pr edit *)",
       "Bash(gh pr ready *)",
       "Bash(gh issue comment *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh issue create *)",
+      "Bash(gh label create *)",
       "Bash(docker compose *)"
     ],
     "deny": [
@@ -51,7 +54,6 @@
       "Edit(/.gitleaks.toml)",
       "Edit(/.gitleaksignore)",
       "Edit(/.github/CODEOWNERS)",
-      "Bash(gh pr merge *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
       "Bash(git push --force-with-lease *)",
@@ -72,7 +74,7 @@
     "allowUnsandboxedCommands": false,
     "excludedCommands": [],
     "filesystem": {
-      "denyRead": ["~/.ssh", "~/.aws", "~/.kube", "~/.gnupg"],
+      "denyRead": ["~/.aws", "~/.kube", "~/.gnupg"],
       "allowWrite": ["~/.gradle"]
     },
     "network": {

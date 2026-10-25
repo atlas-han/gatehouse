@@ -30,7 +30,7 @@ Claude Code 하네스의 구성요소마다 도입 이유, 근거, 제거 조건
 
 | hook | 이벤트 | 막는 실패 | 근거 | 제거 조건 |
 | --- | --- | --- | --- | --- |
-| `guard-bash.sh` | PreToolUse Bash | 파괴적 삭제, force push, `--no-verify`·hooksPath로 gitleaks 우회, 운영 도구, 비밀 파일 열람, 셸로 하네스 변조, allowlist 밖 네트워크, `spec-approved` 라벨 자가 부여 | 설계 #1, gitleaks pre-push 보호 | 없음 |
+| `guard-bash.sh` | PreToolUse Bash | 파괴적 삭제, force push, `--no-verify`·hooksPath로 gitleaks 우회, 운영 도구, 비밀 파일 열람, 셸로 하네스 변조, allowlist 밖 네트워크, `spec-approved` 라벨 자가 부여(이슈 생성 포함), 이슈 삭제·이전 | 설계 #1, gitleaks pre-push 보호 | 없음 |
 | `guard-paths.sh` | PreToolUse Edit\|Write | 하네스·보안 경계 파일 수정, 커밋된 Flyway 마이그레이션 수정 | 설계 #2, plan §2.7 | 없음 |
 | `scan-secrets.sh` | PostToolUse Edit\|Write | 비밀값이 push 직전에야 발견됨 | 설계 #3, NFR-09 | 6개월간 차단 0회면 pre-push만 남기는 것을 검토 |
 | `fast-check.sh` | PostToolUse Edit\|Write | 문법·포맷 오류, Gateway 블로킹 호출이 늦게 발견됨 | 설계 #4, NFR-11 | BlockHound 도입 후 블로킹 grep 제거. ktlint는 Gradle 플러그인 도입 시 재검토 |
@@ -54,6 +54,7 @@ Claude Code 하네스의 구성요소마다 도입 이유, 근거, 제거 조건
 
 | skill | 하는 일 | 비고 |
 | --- | --- | --- |
+| `/issue <설명>` · `/issue --plan W<n>` | 대화의 작업·plan §3 주차 → GitHub 이슈(`/intent` 입력 형식) | 근거 `예상`(이슈를 손으로 옮겨 적음). `gh issue create`·`gh label create`는 allowed-tools에 넣지 않아 settings `ask`로 매번 사람이 확인 |
 | `/intent <이슈>` | 이슈 → INTENT.md | `claude -w issue-<이슈>`로 시작(브랜치 `worktree-issue-<이슈>`, origin/develop 기준) |
 | `/spec` | spec.md + spec-reviewer + draft PR | **사람 승인 1**: PR에 `spec-approved` 라벨 |
 | `/work-plan` | plan.md 태스크 분해 | 내장 `/plan`과 이름이 겹쳐 `work-plan`으로 둠 |
@@ -83,7 +84,7 @@ GitHub 연동은 `gh` CLI만 쓴다(MCP 없음). 문서 정원 관리 예약 작
 ## 열린 항목 (Phase 0 통과 기준)
 
 - [ ] **Testcontainers와 sandbox**: Docker 소켓 접근이 sandbox와 충돌한다. 선택지: (a) `sandbox.network.allowUnixSockets`에 Docker 소켓 추가 + `allowLocalBinding`, (b) Testcontainers 테스트를 별도 태스크(`integrationTest`)로 나눠 CI에서만, (c) `excludedCommands`에 `./gradlew *`. W1 스캐폴드 때 실제로 돌려 보고 정한다.
-- [ ] **sandbox에서 Gradle·gh·git push 동작 확인**: `~/.gradle` 쓰기는 `allowWrite`로 열었다. `gh`(키체인 토큰)와 SSH push(`~/.ssh` denyRead)는 sandbox에서 실패할 수 있어 `excludedCommands`로 뺐다. 실제 동작을 확인한다.
+- [ ] **sandbox에서 Gradle·gh·git push 동작 확인**: `~/.gradle` 쓰기는 `allowWrite`로 열었다. `gh`(키체인 토큰)와 SSH push(`~/.ssh` denyRead)는 sandbox에서 실패할 수 있어 `excludedCommands`로 뺐다. 실제 동작을 확인한다. 확인 결과(2026-10-25): `excludedCommands`를 비운 뒤로 sandbox 안의 `gh`는 `~/.config/gh/config.yml: operation not permitted`로 실패한다(`Read(~/.config/gh/**)` deny가 sandbox denyRead에 반영됨). `/intent`·`/issue`가 쓰는 gh 하위 명령만 `excludedCommands`에 좁게 다시 넣는 안을 제안했다.
 - [ ] **브랜치 보호**(사람이 GitHub에서 설정): `main`, `develop`에 PR 필수, `harness` 체크 필수, Code Owners 리뷰, force push 금지. 1인 저장소라 "승인 1명 이상"은 본인 PR에 적용할 수 없으므로 켜지 않는다.
 - [ ] `spec-approved` 라벨을 저장소에 만든다.
 
