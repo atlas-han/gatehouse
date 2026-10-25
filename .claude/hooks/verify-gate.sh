@@ -11,7 +11,7 @@ session="$(input .session_id)"
 state="$STATE_DIR/verify/${session:-unknown}.json"
 
 # 아직 Gradle 빌드가 없으면(스캐폴드 전) 검사할 것이 없다.
-[ -x "$PROJECT_DIR/gradlew" ] || exit 0
+[ -x "$WORK_DIR/gradlew" ] || exit 0
 
 changed="$(changed_code_files)"
 [ -z "$changed" ] && exit 0

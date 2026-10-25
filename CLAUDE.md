@@ -54,8 +54,9 @@ Testing stack: JUnit5, Kotest assertions, MockK, Testcontainers (MySQL/Redis/Kaf
 The project harness lives in `.claude/`. `.claude/HARNESS.md` records why each part exists and when to remove it. Hooks, settings, gitleaks config, and CODEOWNERS are human-edited only, and the guard hooks block agent edits. To change one, propose the diff instead.
 
 Issue workflow (state lives in `docs/work/<issue>/`, see its README):
-`/issue` (creates the issue; `--plan W<n>` splits a plan week) → `claude -w issue-<n>` → `/intent <n>` → `/spec` → human adds `spec-approved` label → `/work-plan` → `/implement` ⇄ `/work-verify` → `/ship` (human-invoked) → human merges.
+`/issue` (creates the issue; `--plan W<n>` splits a plan week) → `/work <n>` runs the stages below up to the next human gate: `/intent <n>` → `/spec` → human adds `spec-approved` label → `/work-plan` → `/implement` ⇄ `/work-verify` → `/ship` (human-invoked) → human merges.
 
+- **All changes happen in a git worktree.** The main checkout is read-only. Before you edit, write, or commit anything in the repo, use the EnterWorktree tool: `name: issue-<n>` for issue work, `name: task-<short-name>` for anything else. If `.claude/worktrees/<name>` already exists, pass it as `path` instead. Read-only work (questions, review, research) stays in the main checkout. The guard hooks deny edits and commits in the main checkout.
 - Before stopping, if code changed, `./gradlew check` must pass. The Stop hook enforces this.
 - Path-scoped rules in `.claude/rules/` load automatically when you touch matching files.
 - Hook tests: `bash .claude/hooks/tests/run.sh`.

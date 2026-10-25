@@ -31,11 +31,11 @@ Claude Code 하네스의 구성요소마다 도입 이유, 근거, 제거 조건
 | hook | 이벤트 | 막는 실패 | 근거 | 제거 조건 |
 | --- | --- | --- | --- | --- |
 | `guard-bash.sh` | PreToolUse Bash | 파괴적 삭제, force push, `--no-verify`·hooksPath로 gitleaks 우회, 운영 도구, 비밀 파일 열람, 셸로 하네스 변조, allowlist 밖 네트워크, `spec-approved` 라벨 자가 부여(이슈 생성 포함), 이슈 삭제·이전 | 설계 #1, gitleaks pre-push 보호 | 없음 |
-| `guard-paths.sh` | PreToolUse Edit\|Write | 하네스·보안 경계 파일 수정, 커밋된 Flyway 마이그레이션 수정 | 설계 #2, plan §2.7 | 없음 |
+| `guard-paths.sh` | PreToolUse Edit\|Write | 하네스·보안 경계 파일 수정, 커밋된 Flyway 마이그레이션 수정, 메인 체크아웃에서의 파일 변경 | 설계 #2, plan §2.7, 2026-10-25 develop에 의도치 않은 `init` 커밋(아래 worktree 규칙) | 없음 |
 | `scan-secrets.sh` | PostToolUse Edit\|Write | 비밀값이 push 직전에야 발견됨 | 설계 #3, NFR-09 | 6개월간 차단 0회면 pre-push만 남기는 것을 검토 |
 | `fast-check.sh` | PostToolUse Edit\|Write | 문법·포맷 오류, Gateway 블로킹 호출이 늦게 발견됨 | 설계 #4, NFR-11 | BlockHound 도입 후 블로킹 grep 제거. ktlint는 Gradle 플러그인 도입 시 재검토 |
 | `record-test.sh` + `verify-gate.sh` | PostToolUse Bash + Stop | 테스트 없이·실패한 채로 "완료" 보고 | 설계 #5 | eval에서 `no-verify-gate` 변형과 통과율 차이가 없으면 제거 |
-| `load-context.sh` | SessionStart | 재개·압축 뒤 이슈·단계를 잃음 | 설계 #6 | 없음(비용 거의 없음) |
+| `load-context.sh` | SessionStart | 재개·압축 뒤 이슈·단계를 잃음. 메인 체크아웃이면 worktree 규칙과 이어갈 worktree 목록 안내 | 설계 #6 | 없음(비용 거의 없음) |
 | `guard-config.sh` | ConfigChange | 세션 중 hook 비활성화·권한 완화 | 설계 #7 | 없음 |
 | `verifier-bash.sh` | verifier 전용 PreToolUse Bash | 검증자가 코드를 고쳐 통과시킴 | 설계 Layer 4 (subagent `tools`로는 Bash 패턴 제한 불가) | 없음 |
 
@@ -55,7 +55,8 @@ Claude Code 하네스의 구성요소마다 도입 이유, 근거, 제거 조건
 | skill | 하는 일 | 비고 |
 | --- | --- | --- |
 | `/issue <설명>` · `/issue --plan W<n>` | 대화의 작업·plan §3 주차 → GitHub 이슈(`/intent` 입력 형식) | 근거 `예상`(이슈를 손으로 옮겨 적음). `gh issue create`·`gh label create`는 allowed-tools에 넣지 않아 settings `ask`로 매번 사람이 확인 |
-| `/intent <이슈>` | 이슈 → INTENT.md | `claude -w issue-<이슈>`로 시작(브랜치 `worktree-issue-<이슈>`, origin/develop 기준) |
+| `/work <이슈> [--step]` | 이슈 worktree로 이동(없으면 생성) 후 다음 사람 승인 지점까지 아래 단계를 이어서 실행 | 근거 `예상`(단계별 호출을 손으로 이어 붙임). 승인 지점에서 항상 멈춤. 사람 지점이 자주 무시되면 제거하고 단계별 호출로 돌아감 |
+| `/intent <이슈>` | 이슈 → INTENT.md | 이슈 worktree(`.claude/worktrees/issue-<이슈>`, 브랜치 `worktree-issue-<이슈>`)에서. 없으면 EnterWorktree로 만듦 |
 | `/spec` | spec.md + spec-reviewer + draft PR | **사람 승인 1**: PR에 `spec-approved` 라벨 |
 | `/work-plan` | plan.md 태스크 분해 | 내장 `/plan`과 이름이 겹쳐 `work-plan`으로 둠 |
 | `/implement` | 태스크별 테스트 먼저 → 구현 → 커밋 | 긴 실행은 `/goal` |
@@ -64,6 +65,17 @@ Claude Code 하네스의 구성요소마다 도입 이유, 근거, 제거 조건
 | `/adr <주제>` | ADR 작성 | CLAUDE.md의 "열린 항목은 ADR로" 규칙 |
 
 두지 않은 것: `kafka-event-catalog`, `api-drift`(문서화할 이벤트·API가 아직 없다. W3 이후 실제 drift가 관찰되면 추가).
+
+### worktree 규칙
+
+변경 작업은 모두 git worktree에서 한다. 메인 체크아웃은 읽기 전용이다.
+
+- 이슈 작업은 `EnterWorktree name: issue-<번호>`, 그 밖의 변경은 `name: task-<짧은-이름>`으로 만든다. 이미 있으면 `path`로 들어간다. `/work`, `/intent`는 이를 자동으로 한다.
+- 강제: `guard-paths.sh`는 메인 체크아웃 파일의 Edit·Write를 거부하고, `guard-bash.sh`는 메인 체크아웃의 commit·merge·rebase·브랜치 생성을 거부한다. CLAUDE.md에 규칙을 적은 이유는 EnterWorktree 도구가 사용자나 CLAUDE.md의 지시가 있을 때만 쓰이기 때문이다.
+- 근거: 2026-10-25 hook 테스트 스크립트가 sandbox의 `mktemp` 실패를 무시하고 메인 체크아웃에서 `git add -A && git commit -m init`을 실행해 develop에 커밋을 만들었다(두 번 발생, 두 번째는 push됨). 사용자 요청.
+- 전제: worktree 기본 base는 `origin/<기본 브랜치>`다. 로컬 `origin/HEAD`가 develop을 가리켜야 한다(`git remote set-head origin develop`). `/work`는 새 worktree가 develop 기반인지 확인한다.
+- 사람은 hook의 대상이 아니다. 하네스 파일(hooks, settings)은 사람이 메인 체크아웃에서 직접 고친다.
+- 제거 조건: 없음.
 
 ## Layer 6 · 외부 연결 (`.github/`)
 

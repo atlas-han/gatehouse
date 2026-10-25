@@ -18,21 +18,36 @@ block() {
 
 has() { grep -Eq -- "$1" <<<"$cmd"; }
 
+# ; & | 와 줄바꿈으로 나눈 명령 조각. 인자 위치가 중요한 검사는 조각 단위로 한다.
+segments=()
+while IFS= read -r seg; do [ -n "$seg" ] && segments+=("$seg"); done < <(tr ';&|' '\n\n\n' <<<"$cmd")
+
 # 1. 파괴적 삭제: 재귀 rm의 대상이 루트·홈·상위·현재 디렉터리 전체·.git이면 차단. rm -rf build/ 는 허용.
-if has '(^|[;&|[:space:]])rm[[:space:]]+(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)'; then
-  if has '[[:space:]](/|/\*|~|~/|~/\*|\$HOME/?|\.\.?/?|\*|\.git/?)([[:space:];&|]|$)'; then
-    block "재귀 삭제 대상이 루트·홈·현재 디렉터리 전체·.git 입니다: $cmd"
+#    대상 판정은 rm이 있는 명령 조각 안에서만 한다(같은 줄의 다른 명령 인자를 오인하지 않게).
+for seg in "${segments[@]}"; do
+  if grep -Eq '^[[:space:]]*(sudo[[:space:]]+)?rm[[:space:]]+(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)' <<<"$seg" &&
+     grep -Eq '[[:space:]](/|/\*|~|~/|~/\*|\$HOME/?|\.\.?/?|\*|\.git/?)([[:space:]]|$)' <<<"$seg"; then
+    block "재귀 삭제 대상이 루트·홈·현재 디렉터리 전체·.git 입니다: $seg"
   fi
-fi
+done
 has '(^|[;&|[:space:]])git[[:space:]]+clean[[:space:]]+[^;&|]*-[a-zA-Z]*x' &&
   block "git clean -x 는 gitignore된 로컬 설정(.env, application-local*)까지 지웁니다"
 
 # 2. force push, 보호 브랜치 직접 push, gitleaks 우회
-if has '(^|[;&|[:space:]])git[[:space:]]+push'; then
-  has '[[:space:]](--force|--force-with-lease|-f)([[:space:]=]|$)|[[:space:]]\+[^[:space:]]+' &&
+for seg in "${segments[@]}"; do
+  grep -Eq '^[[:space:]]*git[[:space:]]+push' <<<"$seg" || continue
+  grep -Eq '[[:space:]](--force|--force-with-lease|-f)([[:space:]=]|$)|[[:space:]]\+[^[:space:]]+' <<<"$seg" &&
     block "force push"
-  has '[[:space:]](origin[[:space:]]+)?(HEAD:)?(refs/heads/)?(main|develop)([[:space:]]|$)' &&
+  grep -Eq '[[:space:]](origin[[:space:]]+)?(HEAD:)?(refs/heads/)?(main|develop)([[:space:]]|$)' <<<"$seg" &&
     block "main·develop 브랜치에 직접 push — PR로 병합하세요"
+done
+# 메인 체크아웃에서는 커밋·병합·브랜치 생성을 하지 않는다. 변경은 worktree에서 한다(guard-paths.sh와 같은 규칙).
+if ! is_linked_worktree "$WORK_DIR"; then
+  for seg in "${segments[@]}"; do
+    if grep -Eq '^[[:space:]]*git[[:space:]]+(commit|merge|rebase|cherry-pick|am|revert|stash[[:space:]]+(pop|apply)|(checkout|switch)[[:space:]]+(-[a-zA-Z]*[bBc][a-zA-Z]*|--create|--orphan))([[:space:]]|$)' <<<"$seg"; then
+      block "메인 체크아웃에서 '$seg' — EnterWorktree로 worktree를 만든 뒤(name: issue-<번호> 또는 task-<짧은-이름>) 그 안에서 하세요"
+    fi
+  done
 fi
 has '(^|[;&|[:space:]])git[[:space:]]+(commit|push|merge|rebase)[[:space:]][^;&|]*--no-verify' &&
   block "--no-verify 는 gitleaks pre-push hook을 건너뜁니다"
@@ -41,8 +56,9 @@ has 'core\.hooksPath' && has 'git[[:space:]]+config' && ! has 'git[[:space:]]+co
 
 # 3. GitHub의 되돌리기 어려운 작업
 has '(^|[;&|[:space:]])gh[[:space:]]+pr[[:space:]]+merge' && block "PR 병합은 사람이 합니다"
-has '(^|[;&|[:space:]])gh[[:space:]]+(pr|issue)[[:space:]]+edit[[:space:]].*spec-approved' &&
+has '(^|[;&|[:space:]])gh[[:space:]]+(pr|issue)[[:space:]]+(edit|create)[[:space:]].*spec-approved' &&
   block "spec-approved 라벨은 사람이 spec을 승인할 때 붙입니다"
+has '(^|[;&|[:space:]])gh[[:space:]]+issue[[:space:]]+(delete|transfer)' && block "이슈 삭제·이전"
 has '(^|[;&|[:space:]])gh[[:space:]]+(repo[[:space:]]+delete|release[[:space:]]+delete|secret|variable)' &&
   block "저장소 삭제·secret·variable 변경"
 has '(^|[;&|[:space:]])gh[[:space:]]+api[[:space:]].*(-X|--method)[[:space:]]*(DELETE|PUT)' &&

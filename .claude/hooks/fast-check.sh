@@ -7,7 +7,8 @@ source "$(dirname "$0")/_lib.sh"
 
 file="$(input .tool_input.file_path)"
 [ -z "$file" ] || [ ! -f "$file" ] && exit 0
-rel="$(rel_path "$file")"
+loc="$(repo_locate "$file")"
+if [ -n "$loc" ]; then rel="${loc#*$'\t'}"; else rel="$(rel_path "$file")"; fi
 problems=""
 
 add() { problems="${problems}$1"$'\n'; }

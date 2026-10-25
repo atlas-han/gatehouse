@@ -12,6 +12,11 @@ HOOK_INPUT="$(cat)"
 
 input() { jq -r "$1 // empty" <<<"$HOOK_INPUT"; }
 
+# 세션이 지금 작업 중인 저장소 루트. EnterWorktree로 들어간 worktree면 PROJECT_DIR(hook 위치)과 다르다.
+_cwd="$(input .cwd)"
+# shellcheck disable=SC2034  # source 하는 hook들이 쓴다
+WORK_DIR="$(git -C "${_cwd:-$PROJECT_DIR}" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PROJECT_DIR")"
+
 hook_log() { # hook_log <hook> <decision> <detail>
   mkdir -p "$STATE_DIR" 2>/dev/null || return 0
   jq -cn --arg hook "$1" --arg decision "$2" --arg detail "$3" \
@@ -28,4 +33,25 @@ rel_path() {
     /*) printf '%s' "$p" ;;
     *) printf '%s' "${p#./}" ;;
   esac
+}
+
+# 파일(아직 없어도 됨)을 담은 저장소의 루트와 그 루트 기준 상대 경로. 심볼릭 링크(/tmp → /private/tmp)를 풀어 비교한다.
+# 출력: "<root>\t<rel>". 저장소 밖이면 아무것도 출력하지 않는다.
+repo_locate() {
+  local f="$1" d rest root phys
+  d="$(dirname "$f")"
+  while [ ! -d "$d" ] && [ "$d" != / ] && [ "$d" != . ]; do d="$(dirname "$d")"; done
+  rest="${f#"$d"/}"
+  phys="$(cd "$d" 2>/dev/null && pwd -P)" || return 0
+  root="$(git -C "$phys" rev-parse --show-toplevel 2>/dev/null)" || return 0
+  [ -n "$root" ] || return 0
+  printf '%s\t%s' "$root" "${phys#"$root"}/$rest" | sed -E 's#\t/+#\t#'
+}
+
+# 저장소 루트가 git worktree add로 만든 linked worktree인지(메인 체크아웃이 아닌지).
+is_linked_worktree() {
+  local gd cd
+  gd="$(git -C "$1" rev-parse --path-format=absolute --git-dir 2>/dev/null)"
+  cd="$(git -C "$1" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+  [ -n "$gd" ] && [ "$gd" != "$cd" ]
 }

@@ -15,7 +15,7 @@ if ! command -v gitleaks >/dev/null 2>&1; then
   exit 0
 fi
 
-report="$(mktemp)"
+report="$(mktemp "${TMPDIR:-/tmp}/gitleaks.XXXXXX")" || exit 0
 trap 'rm -f "$report"' EXIT
 gitleaks dir "$file" --no-banner --redact --log-level error --exit-code 3 \
   --gitleaks-ignore-path "$PROJECT_DIR" --report-format json --report-path "$report" >/dev/null 2>&1
