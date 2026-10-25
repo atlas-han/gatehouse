@@ -70,7 +70,7 @@
     "enabled": true,
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": false,
-    "excludedCommands": ["git push *", "gh *"],
+    "excludedCommands": [],
     "filesystem": {
       "denyRead": ["~/.ssh", "~/.aws", "~/.kube", "~/.gnupg"],
       "allowWrite": ["~/.gradle"]
