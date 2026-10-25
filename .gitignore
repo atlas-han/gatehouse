@@ -1,0 +1,125 @@
+# =====================================================================
+# Gatehouse
+#   gatehouse-gateway / gatehouse-auth / gatehouse-admin-api : Spring (JVM)
+#   gatehouse-console : Svelte + Admin BFF (Spring)
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# OS
+# ---------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+Desktop.ini
+
+# ---------------------------------------------------------------------
+# IDE / Editor
+# ---------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.settings/
+.project
+.classpath
+.factorypath
+.apt_generated/
+.sts4-cache/
+.springBeans
+*.swp
+*~
+
+# ---------------------------------------------------------------------
+# Java / Kotlin (Gradle)
+# ---------------------------------------------------------------------
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+.kotlin/
+
+# ---------------------------------------------------------------------
+# Java (Maven)
+# ---------------------------------------------------------------------
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ---------------------------------------------------------------------
+# JVM 공통
+# ---------------------------------------------------------------------
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+bin/
+
+# ---------------------------------------------------------------------
+# Node / Svelte (gatehouse-console)
+# ---------------------------------------------------------------------
+node_modules/
+.svelte-kit/
+dist/
+.vite/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.eslintcache
+
+# ---------------------------------------------------------------------
+# Secrets / 로컬 설정
+#   Client Secret, HMAC 키, JWT 서명 키(JWKS), Google OIDC 자격 증명 등은
+#   절대 커밋하지 않는다 (NFR-09)
+# ---------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+application-local.properties
+application-secret*.yml
+application-secret*.yaml
+*.pem
+*.key
+*.jks
+*.p12
+*.pfx
+*.keystore
+*.truststore
+credentials*.json
+client_secret*.json
+
+# ---------------------------------------------------------------------
+# 로컬 인프라 (MySQL / Redis / Kafka docker 볼륨 등)
+# ---------------------------------------------------------------------
+docker-data/
+.docker-data/
+*.rdb
+*.aof
+docker-compose.override.yml
+
+# ---------------------------------------------------------------------
+# 테스트 / 리포트
+# ---------------------------------------------------------------------
+test-results/
+playwright-report/
+*.hprof
+
+# ---------------------------------------------------------------------
+# Tooling
+# ---------------------------------------------------------------------
+/graft/
