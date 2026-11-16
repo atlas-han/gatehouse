@@ -22,8 +22,13 @@ jobs:
           curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | tar -xz -C /usr/local/bin gitleaks
       - name: shellcheck
-        run: shellcheck -S warning .claude/hooks/*.sh .claude/hooks/tests/run.sh
+        run: shellcheck -S warning .claude/hooks/*.sh .claude/hooks/tests/run.sh .githooks/*
       - name: settings.json is valid JSON
         run: jq empty .claude/settings.json
+      # "sandbox.network.allowLocalBinding" 처럼 경로를 키 하나로 적으면 JSON은 맞지만 설정은 무시된다.
+      - name: settings.json has no dotted-path keys
+        run: |
+          bad="$(jq -r '[paths | map(select(type == "string")) | .[] | select(test("^(permissions|sandbox|hooks|env|network|filesystem)\\."))] | unique | .[]' .claude/settings.json)"
+          if [ -n "$bad" ]; then echo "설정 경로를 키 하나로 적었습니다. 중첩 객체로 고치세요:"; echo "$bad"; exit 1; fi
       - name: hook tests
         run: bash .claude/hooks/tests/run.sh

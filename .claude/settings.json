@@ -68,16 +68,20 @@
     ],
     "disableBypassPermissionsMode": "disable"
   },
+  "env": {
+    "GH_REPO": "atlas-han/gatehouse"
+  },
   "sandbox": {
     "enabled": true,
     "failIfUnavailable": true,
     "allowUnsandboxedCommands": false,
-    "excludedCommands": [],
+    "excludedCommands": ["gh *"],
     "filesystem": {
       "denyRead": ["~/.aws", "~/.kube", "~/.gnupg"],
       "allowWrite": ["~/.gradle"]
     },
     "network": {
+      "allowLocalBinding": true,
       "allowedDomains": [
         "github.com",
         "api.github.com",

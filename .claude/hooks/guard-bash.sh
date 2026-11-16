@@ -86,10 +86,22 @@ fi
 
 # 7. 네트워크: 원격 스크립트 실행, allowlist 밖 호출
 has '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(ba|z)?sh' && block "원격 스크립트를 바로 실행"
+#    허용 호스트는 settings.json의 sandbox.network.allowedDomains 하나만 본다(목록을 두 벌로 두면 어긋난다).
+#    로컬 주소만 여기서 따로 허용한다. "*.example.com"은 하위 도메인에 맞는다.
+host_allowed() {
+  local h="$1" p
+  case "$h" in localhost|127.0.0.1|'[::1]') return 0 ;; esac
+  while IFS= read -r p; do
+    case "$p" in
+      '*.'*) case "$h" in *"${p#\*}") return 0 ;; esac ;;
+      *) [ "$h" = "$p" ] && return 0 ;;
+    esac
+  done < <(jq -r '.sandbox.network.allowedDomains[]? // empty' "$PROJECT_DIR/.claude/settings.json" 2>/dev/null | tr 'A-Z' 'a-z')
+  return 1
+}
 if has '(^|[;&|[:space:](])(curl|wget|http|https|nc|ncat)[[:space:]]'; then
-  allowed='^(localhost|127\.0\.0\.1|\[::1\]|github\.com|api\.github\.com|[a-z0-9.-]+\.githubusercontent\.com|repo\.maven\.apache\.org|repo1\.maven\.org|plugins\.gradle\.org|services\.gradle\.org|registry\.npmjs\.org|code\.claude\.com|docs\.spring\.io)$'
   for host in $(grep -Eo 'https?://[^/[:space:]"'"'"'?#]+' <<<"$cmd" | sed -E 's#^https?://##; s#^.*@##; s#:[0-9]+$##' | tr 'A-Z' 'a-z'); do
-    grep -Eq "$allowed" <<<"$host" || block "allowlist 밖 네트워크 호출: $host"
+    host_allowed "$host" || block "allowlist 밖 네트워크 호출: $host (문서·버전 조회는 WebFetch 도구를 쓰세요. 허용 목록은 settings.json의 sandbox.network.allowedDomains이고 사람이 바꿉니다)"
   done
 fi
 

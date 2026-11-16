@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+#
+# pre-commit: Claude Code 세션이 메인 체크아웃에서 만드는 커밋을 막는다.
+#
+# 변경 작업은 worktree에서만 한다(.claude/HARNESS.md "worktree 규칙"). guard-bash.sh는 Bash 명령 문자열만 보므로
+# 스크립트 안에서 실행된 git commit이나 git -C <메인> commit은 잡지 못한다. 2026-10-25 사고가 그 경우였다
+# (hook 테스트 스크립트가 메인 체크아웃에서 git commit을 실행). git hook은 커밋이 어디서 시작됐든 실행된다.
+#
+# 사람의 커밋은 막지 않는다. Claude Code는 자기가 띄운 셸에 CLAUDECODE=1을 넣는다.
+# Claude Code 프롬프트에서 `!`로 실행한 커밋도 이 변수가 있어 막힌다. 메인 체크아웃 커밋은 사람의 터미널에서 한다.
+#
+# 활성화: git config core.hooksPath .githooks
+
+[ "${CLAUDECODE:-}" = 1 ] || exit 0
+
+git_dir="$(git rev-parse --path-format=absolute --git-dir 2>/dev/null)"
+common_dir="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+# linked worktree면 두 경로가 다르다.
+[ -n "$git_dir" ] && [ "$git_dir" = "$common_dir" ] || exit 0
+
+{
+  echo
+  echo "[pre-commit] 차단: Claude Code 세션은 메인 체크아웃($(git branch --show-current 2>/dev/null))에 커밋하지 않습니다."
+  echo " worktree에서 작업하세요(EnterWorktree, name: issue-<번호> 또는 task-<짧은-이름>)."
+  echo " 사람이 직접 하는 커밋이면 Claude Code 밖의 터미널에서 실행하세요."
+  echo
+} >&2
+exit 1
