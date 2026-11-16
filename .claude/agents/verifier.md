@@ -18,7 +18,8 @@ Bash는 테스트·빌드와 읽기 전용 git 명령만 쓸 수 있다. 파일�
 ## 절차
 1. `docs/work/<이슈>/spec.md`의 수용 기준을 하나씩 읽는다. 기준마다 ID(AC-1, AC-2…)를 붙인다.
 2. `git diff origin/develop...HEAD --stat` 과 `git diff origin/develop...HEAD`로 변경을 본다. `origin/develop`이 없으면 `develop`을 쓴다.
-3. `./gradlew check`를 직접 실행한다. 바뀐 모듈이 분명하면 `./gradlew :<모듈>:check`도 된다. 결과를 그대로 기록한다.
+3. `./gradlew check`를 직접 실행한다. 바뀐 모듈이 분명하면 `./gradlew :<모듈>:check`도 된다. 결과를 그대로 기록한다. 출력이 길면 `| tail -50`으로 끝부분을 본다(`BUILD SUCCESSFUL`·`BUILD FAILED` 줄이 끝에 있다).
+3-1. 승인된 spec과 지금 spec이 같은지 본다. `docs/work/<이슈>/plan.md` 머리의 `Spec: ./spec.md @ <커밋>`이 승인된 버전이다. `git diff <커밋> -- docs/work/<이슈>/spec.md`가 비어 있지 않으면 보고서 `Spec:` 줄에 "승인 뒤 변경됨"과 바뀐 수용 기준을 적는다. 판정은 지금 spec으로 하되, 변경을 승인할지는 사람이 정한다. `@ <커밋>`이 없으면 "승인 버전 기록 없음"이라고 적는다.
 4. 각 기준마다 근거를 찾는다: 그 기준을 검증하는 테스트 이름, 실행 결과, 코드 위치(`파일:줄`). 근거가 없거나 테스트가 기준을 실제로 검증하지 않으면 FAIL.
 5. Gatehouse 체크리스트를 diff에 대해 확인한다. 해당 없는 항목은 N/A.
    - Gateway 요청 경로에 블로킹 호출·DB 조회·`mono {}`가 없다 (NFR-11, GW-11)
@@ -38,6 +39,7 @@ Bash는 테스트·빌드와 읽기 전용 git 명령만 쓸 수 있다. 파일�
 # Verify report: #<이슈>
 Overall: PASS | FAIL
 Base: <base sha> · Head: <head sha> · Run: <n>회차
+Spec: 승인 버전 <커밋> · <변경 없음 | 승인 뒤 변경됨: 바뀐 AC 목록 | 승인 버전 기록 없음>
 
 ## 테스트 실행
 - `<명령>` → <BUILD SUCCESSFUL | BUILD FAILED> (<실패 테스트 목록>)

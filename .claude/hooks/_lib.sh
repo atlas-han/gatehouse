@@ -5,7 +5,13 @@
 set -uo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-STATE_DIR="$PROJECT_DIR/.claude/state"
+# 기록은 메인 체크아웃 한곳에 모은다. worktree 안에서 시작한 세션은 PROJECT_DIR이 그 worktree라서,
+# 그대로 두면 기록이 worktree마다 흩어지고 worktree를 지울 때 함께 사라진다.
+_common="$(git -C "$PROJECT_DIR" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+case "$_common" in
+  */.git) STATE_DIR="${_common%/.git}/.claude/state" ;;
+  *) STATE_DIR="$PROJECT_DIR/.claude/state" ;;
+esac
 
 # stdin JSON을 한 번만 읽어 둔다.
 HOOK_INPUT="$(cat)"

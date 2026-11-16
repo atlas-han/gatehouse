@@ -37,8 +37,15 @@ allowed-tools: Read, Glob, Grep, Edit(docs/work/**), Bash(git status *), Bash(gi
 돌려받은 내용을 `docs/work/<번호>/spec-review.md`에 그대로 저장한다.
 Verdict가 REVISE면 Blocking 항목을 반영해 spec.md를 고치고 다시 검토한다. 2회 검토 후에도 REVISE면 멈추고 남은 항목을 사람에게 보여 준다.
 
+사람이 남은 Blocking 항목을 고치지 않고 가기로 하면, spec.md 끝에 아래 섹션을 더하고 3단계로 간다. 사람이 말한 결정만 적는다. spec-review.md는 고치지 않는다.
+
+```
+## 검토 후 남긴 항목
+- B1: <사람의 결정과 이유>
+```
+
 ### 3. draft PR
-APPROVE면 `docs/work/<번호>/`만 커밋한다(`docs(#<번호>): spec`). 그다음 push와 draft PR 생성은 사람 확인을 거친다:
+APPROVE이거나 "검토 후 남긴 항목"을 적었으면 `docs/work/<번호>/`만 커밋한다(`docs(#<번호>): spec`). 그다음 push와 draft PR 생성은 사람 확인을 거친다:
 `git push -u origin HEAD` → `gh pr create --draft --base develop --title "#<번호> <제목>" --body "Closes #<번호>\n\nSpec: docs/work/<번호>/spec.md"`
 
 마지막으로 안내한다: "spec을 검토하고 승인하면 PR에 `spec-approved` 라벨을 붙여 주세요. 그 뒤 `/work-plan`."

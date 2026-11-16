@@ -17,6 +17,8 @@ Read both before designing or scaffolding anything. Requirement IDs in code, com
 git config core.hooksPath .githooks   # enables the gitleaks pre-push hook (requires `brew install gitleaks`)
 ```
 
+The same setting enables the pre-commit hook, which refuses commits made from a Claude Code session in the main checkout (commits from your own terminal are not affected).
+
 The pre-push hook scans only the commits being pushed and blocks the push if it finds a secret. For a false positive, add a `gitleaks:allow` comment on the line or add the fingerprint to `.gitleaksignore`.
 
 Planned build entry point (from W1 of the plan): `./gradlew build`, with local infra (MySQL, Redis, Kafka KRaft) started via `deploy/docker-compose.yml`.

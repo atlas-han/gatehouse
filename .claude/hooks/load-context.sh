@@ -21,36 +21,9 @@ if ! is_linked_worktree "$WORK_DIR"; then
   exit 0
 fi
 
-# issue-123, worktree-issue-123, feat/123-foo, 123-foo 형식에서 이슈 번호를 찾는다.
-issue="$(sed -nE 's#^(.*/)?(worktree-)?(issue-)?([0-9]+)([-_/].*)?$#\4#p' <<<"$branch")"
-echo "- 위치: worktree $WORK_DIR"
-if [ -z "$issue" ]; then
-  echo "- 연결된 이슈: 없음"
-  exit 0
-fi
-
-dir="docs/work/$issue"
-echo "- 이슈: #$issue · 작업 폴더: $dir/"
-next=""
-for step in INTENT.md:/intent spec.md:/spec spec-review.md:/spec plan.md:/work-plan verify-report.md:/work-verify; do
-  f="${step%%:*}"
-  if [ -f "$WORK_DIR/$dir/$f" ]; then
-    echo "  - [x] $f"
-  else
-    echo "  - [ ] $f"
-    [ -z "$next" ] && next="${step#*:}"
-  fi
-done
-if [ -f "$WORK_DIR/$dir/plan.md" ]; then
-  open_tasks="$(grep -c '^[[:space:]]*- \[ \]' "$WORK_DIR/$dir/plan.md" 2>/dev/null)"
-  echo "- plan.md 남은 태스크: ${open_tasks:-0}개"
-  [ "${open_tasks:-0}" -gt 0 ] && [ "$next" = /work-verify ] && next=/implement
-fi
-if [ -f "$WORK_DIR/$dir/verify-report.md" ]; then
-  verdict="$(grep -m1 -Eo 'Overall: (PASS|FAIL)' "$WORK_DIR/$dir/verify-report.md")"
-  echo "- 마지막 검증: ${verdict:-판정 없음}"
-  [ "$verdict" = "Overall: FAIL" ] && next=/implement
-  [ "$verdict" = "Overall: PASS" ] && next="/ship (사람이 호출)"
-fi
-echo "- 다음 단계: ${next:-/intent $issue} (또는 /work $issue 로 다음 사람 승인 지점까지 진행)"
+# 단계 판정은 work-status.sh 한곳에서 한다(/work와 각 skill 머리말도 같은 스크립트를 쓴다).
+# 세션 시작은 빨라야 하므로 PR 라벨은 조회하지 않는다. 라벨이 필요한 지점이면 "확인하지 못했습니다"로 나온다.
+here="$(cd "$(dirname "$0")" && pwd)"
+(cd "$WORK_DIR" && bash "$here/work-status.sh" --no-gh)
+echo "- /work <번호> 로 다음 사람 승인 지점까지 이어서 진행한다."
 exit 0

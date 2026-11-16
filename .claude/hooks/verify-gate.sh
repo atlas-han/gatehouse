@@ -17,14 +17,16 @@ changed="$(changed_code_files)"
 [ -z "$changed" ] && exit 0
 
 tree="$(tree_fingerprint)"
-last_tree="" last_result="" blocks=0
+last_tree="" last_result="" last_scope="" blocks=0
 if [ -f "$state" ]; then
   last_tree="$(jq -r '.tree // empty' "$state")"
   last_result="$(jq -r '.result // empty' "$state")"
+  last_scope="$(jq -r '.scope // "full"' "$state")"
   blocks="$(jq -r '.blocks // 0' "$state")"
 fi
 
-if [ "$tree" = "$last_tree" ] && [ "$last_result" = pass ]; then
+# 전체 실행(scope=full)이 통과했고 그 뒤로 작업 트리가 그대로일 때만 끝낼 수 있다.
+if [ "$tree" = "$last_tree" ] && [ "$last_result" = pass ] && [ "$last_scope" = full ]; then
   exit 0
 fi
 
@@ -45,14 +47,20 @@ if [ "$blocks" -gt "$MAX_BLOCKS" ]; then
   exit 0
 fi
 
-if [ "$last_result" = fail ] && [ "$tree" = "$last_tree" ]; then
-  why="마지막 테스트가 실패한 상태입니다"
-else
+# 거부 사유는 에이전트가 다음에 무엇을 해야 하는지 알 수 있게 경우별로 나눈다.
+if [ "$tree" != "$last_tree" ]; then
   why="코드가 바뀐 뒤 통과한 테스트 기록이 없습니다"
+elif [ "$last_result" = fail ]; then
+  why="마지막 테스트가 실패한 상태입니다"
+elif [ "$last_result" = pass ]; then
+  why="일부 모듈·테스트만 통과한 상태입니다(전체 실행 기록 없음)"
+else
+  why="마지막 Gradle 실행의 결과를 출력에서 읽지 못했습니다(BUILD SUCCESSFUL·BUILD FAILED 줄이 없음). 출력을 head·grep으로 자르면 이렇게 됩니다"
 fi
 hook_log verify-gate block "$why ($blocks/$MAX_BLOCKS)"
 jq -cn --arg r "$why ($blocks/$MAX_BLOCKS). 변경된 코드 파일:
 $(head -20 <<<"$changed")
-./gradlew check 를 실행해 통과시키고 끝내세요. 바꾼 모듈만 보려면 ./gradlew :<모듈>:check.
+전체 검사를 끝부분이 남게 실행해 통과시키고 끝내세요: ./gradlew check 2>&1 | tail -30
+모듈 단위(:<모듈>:check)나 --tests 실행은 작업 중 확인용이고, 끝내는 조건은 전체 ./gradlew check 입니다.
 고칠 수 없는 실패라면 원인과 재현 명령을 정리해 사람에게 넘기세요." '{decision:"block", reason:$r}'
 exit 0
